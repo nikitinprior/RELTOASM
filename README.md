@@ -11,44 +11,25 @@ However, information about the .rel format was partially available and several
 programs were written to parse the .rel files generated during compilation of the
 source code.
 
-In a tabular form, a part of the programs for CP/M is presented in the order of
-their writing.
+A part of the programs for CP/M is presented in the order of their writing.
 
-+--------------+---------+----------------------------+-------------+------+
-| Program      | Date    | Author                     | Language    | Size |
-| name         | writing |                            | sourse      | .COM |
-+--------------+---------+----------------------------+-------------+------+
-| RELDUMP      | 8/22/80 | Ron Fowler Westland, Mich. | asm 8080    |  1 K |
-+--------------+---------+----------------------------+-------------+------+
-| RELDUMP      | 1981    | MML Systems Limited        | asm 8080    |  2 K |
-| RELMAP       | 1981    |                            | asm 8080    |      |
-| RELDEL       | 1981    |                            | asm 8080    |      |
-+--------------+---------+----------------------------+-------------+------+
-| READREL  v1.1| 08/20/83| G. A. Edgar                | Aztec CII   | 11 K |
-+--------------+---------+----------------------------+-------------+------+
-| DISREL       | 10/8/84 | Pierre R. Schwob           | asm 8080    | 14 K |
-+--------------+---------+----------------------------+-------------+------+
-| LINKMAP  v1.0| 1984    | NightOwl Software, Inc.    | asm 8080    |  2 K |
-+--------------+---------+----------------------------+-------------+------+
-| DREL         | 1985    | J. E. Hendrix              | Small C     | 11 K |
-+--------------+---------+----------------------------+-------------+------+
-| UNREL        | 1986    | Riclin Computer Products   | MISOSYS C   | 19 K |
-| DECODREL     | 1986    |                            |             |      |
-| SPLITLIB     | 1986    |                            |             | 10 K |
-+--------------+---------+----------------------------+-------------+------+
-| LIBE         | 1990    | Unknown                    | RATFOR      | 13 K |
-+--------------+---------+----------------------------+-------------+------+
-| TB       v2.2| 1991    | MicroGenSf (Russia)        | MicroGenSf C| 11 K |
-+--------------+---------+----------------------------+-------------+------+
-| DISA-REL     | 1994    | Ronald E. Bruck            | Pascal MT+  | 19 K |
-+--------------+---------+----------------------------+-------------+------+
-| REL          | 1997    | Werner Cirsovius           | asm Z80     |      |
-+--------------+---------+----------------------------+-------------+------+
-| RELUTIL      | 2015    | Werner Cirsovius           | asm Z80     |  3 K |
-+--------------+---------+----------------------------+-------------+------+
-| RELtoASM v1.0| 2021    | A. Nikitin                 | Hi-Tech C   | 19 K |
-+--------------+---------+----------------------------+-------------+------+
-
+RELDUMP.ASM  8/22/80  Ron Fowler Westland, Mich. RMAC, Size .COM = 1K
+RELDUMP.ASM  1981     MML Systems Limited, RMAC, Size .COM = 2K
+RELMAP.ASM   1981     MML Systems Limited, RMAC
+RELDEL.ASM   1981     MML Systems Limited, RMAC
+READREL.C    08/20/83 v1.1 G. A. Edgar, Aztec CII, Size .COM = 11K
+DISREL.ASM   10/8/84  Pierre R. Schwob on asm 8080 Size .COM = 14K
+LINKMAP.ASM  1984     v1.0 NightOwl Software, Inc., RMAC, Size .COM = 2K
+DREL.C       1985     J. E. Hendrix, Small C, Size .COM = 11K
+UNREL.C      1986     Riclin Computer Products, MISOSYS C, Size .COM = 19K
+DECODREL.C   1986     Riclin Computer Products, MISOSYS C
+SPLITLIB.C   1986     Riclin Computer Products, MISOSYS C, Size .COM = 10K
+LIBE.RAT     1990     Unknown, RATFOR, Size .COM = 13K
+TB.C         1991     v2.2 MicroGenSf (Russia), MicroGenSf C, Size .COM = 11K
+DISA-REL.PAS 1994     Ronald E. Bruck, Pascal MT+, Size .COM = 19K
+REL.MAC      1997     Werner Cirsovius, M80
+RELUTIL.MAC  2015     Werner Cirsovius M80, Size .COM = 3K
+RELtoASM.C   2021     v1.0 A. Nikitin, Hi-Tech C, Size .COM = 19K
 
 Many of these programs display the information contained in the object file in one
 form or another. Two of them are trying to translate it into assembly language code.
