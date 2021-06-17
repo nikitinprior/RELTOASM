@@ -1,0 +1,340 @@
+                    DOCUMENTATION FOR DISASM
+
+                         by Ronald Bruck
+
+This program accepts as input a  .ERL or .REL  (Microsoft-format 
+relocatable)  file  and  disassembles  it  to  the  output  file.  
+The original file may very well be a library file, containing more 
+than one module.  The result is almost in a form for assembly via 
+M80 or RMAC -- see the example below.
+
+                              USAGE
+
+In addition to the DISASM.COM file, you must have the file
+OPCODES.TXT on drive A:.
+
+The program is invoked by
+
+    DISASM inputfile.ext outputfile.ext
+       (for translating inputfile to the textfile outputfile)
+    or
+
+    DISASM inputfile.ext
+       (for translating inputfile to the default CON:)
+
+It  is an error to invoke DISASM without any parameters,  and  the 
+user is given a message to that effect.
+
+For example, consider the very simple (if useless) program
+
+PROGRAM dummy;
+VAR
+  col, line : INTEGER;
+
+EXTERNAL PROCEDURE gotoxy ( col, line );
+
+BEGIN
+  gotoxy ( col, line );
+END.
+
+After compilation by MT+ version 5.6 and disassembly of the .ERL file
+by DISASM we obtain the following actual output:
+
+                      NAME      ('DUMMY  ')
+                      EXTRN     @INI,@HLT,GOTOXY
+                      PUBLIC    LINE,COL
+                      CSEG
+0000'  00             NOP
+0001'  00             NOP
+0002'  00             NOP
+0003'  00             NOP
+0004'  00             NOP
+0005'  00             NOP
+0006'  00             NOP
+0007'  00             NOP
+0008'  00             NOP
+0009'  00             NOP
+000A'  00             NOP
+000B'  00             NOP
+000C'  00             NOP
+000D'  00             NOP
+000E'  00             NOP
+000F'  00             NOP
+0010'  C3             JMP  C$0013
+0013'  2A    C$0013:  LHLD 0006h
+0016'  F9             SPHL
+0017'  CD             CALL @INI
+001A'  2A             LHLD COL
+001D'  E5             PUSH H
+001E'  2A             LHLD LINE
+0021'  E5             PUSH H
+0022'  CD             CALL GOTOXY
+0025'  CD             CALL @HLT
+                      DSEG
+0000"          LINE:  DS   2
+0002"           COL:  DS   2
+                      END
+
+Note that the EXTERNAL declaration in the original program is mirrored
+by the EXTRN declaration in the disassembled file.  Note also that
+PUBLICLY declared items -- arising from the global variables and global 
+procedures/functions in the MT+ program -- are declared in a PUBLIC
+statement in the disassembled file.  Finally, internal entrypoints and
+data are denoted by C$nnnn and D$nnnn, respectively.
+
+The disassembler does not construct DB's in the DSEG, only DS's, so it
+may fail on certain .REL files.  In the MT+ environment this is not a
+problem, since LINKMT does not accept DB's in the DSEG.
+
+The first five characters at the left of the disassembly specify whether 
+the bytes are in the code-relative or data-relative sections (a single 
+quote stands for code-relative, a double-quote for data-relative).  
+DISASM does not support COMMON.
+
+The FIRST BYTE of each item is given because the disassembly is not 
+perfect -- I have not attempted to have it disassemble embedded strings 
+or data in the code-relative segment.  It will treat this as code as
+long as it can, otherwise will use DB.  Since the first byte is available,
+you can manually change these items to DB.  
+
+Note that CSEG and DSEG are specified, and that in contrast to the output
+of DIS8080, all reference chains have been filled in.  If there is no data,
+the DSEG statement will not be generated.
+
+
+The first 12 columns are always present -- they may be blanks (no tabs are
+used) -- so you can go into ED and do a macro:  BM12DL  to remove all of
+that information.  The resulting file can be reassembled by M80 to give
+a perfect copy of the original .ERL or .REL file.  (There may be a
+problem with seven-character names which coincide in the first six
+characters.)  Also, if the original file was a library file, the first
+END encountered will terminate assembly.
+
+The companion program BREAKLIB can be used on the OUTPUT of DISASM.  
+(Strange things will happen if you use it on other files!)  It is expecially
+intended for use on files generated from DISASM applied to libraries.
+(In particular, PASLIB.ERL.)  When invoked by
+
+                     BREAKLIB  filename.ext,
+
+the following are created:
+
+	(1)  The file  filename.REF, which contains (for each module
+in the original file) the NAME of the module, followed by (indented)
+lines identifying the PUBLIC entrypoints of those modules.
+
+	(2)  For each module in the original file, having name "NAME",
+a file of name  NAME.MAC, containing the lines of the original file
+pertaining to that module, eliminating the first 7 characters, but
+leaving the first byte of the item so you can manually edit strings.
+
+For safety's sake, BREAKLIB will never destroy an existing file.  When
+you apply it to PASLIB, expect LOTS of text, and a two-inch printout.
+
+                       WHY A DISASSEMBLER
+
+(a)  A disassembler and a code optimizer together can give more compact,
+faster programs.  Now all we're lacking is the optimizer!
+
+(b)  You can disassemble files such as REALIO.ERL, for which source is
+not available from DRI, and write your own modules based on what you find.
+For example, I plan to write a "rational arithmetic" module which will
+replace the 80-bit BCD form of real numbers with an exact rational 
+arithmetic format.  This will allow, for example, exact 73-bit integer
+arithmetic (including the sign bit).  
+
+(c)  When ordinary single-precision reals are used, the compiler allocates
+4 bytes per real number.  When BCD reals are used, it allocates 10 bytes
+per real.  Disassembling the code, we can replace these 10 bytes by 8.
+(To do this automatically will require a special program which parses the 
+original source file in parallel with the disassembled code.)  This is a
+kludge to overcome DRI's negligence in not providing double-precision
+arithmetic.
+
+I intend to write a double-precision real number package using the Hudson 
+8087 board with my Compupro 8085/8088 board.  8080 MT+ will then be able 
+to do double-precision reals.  (I own MT+86 for the 8088 side of my machine, 
+but unfortunately DRI modified the compiler so it will no longer run in 
+128K.  My money wasn't exactly wasted -- eventually I'll get more 
+memory -- but it is certainly lying fallow.)
+
+(d)  You can disassemble PASLIB and rewrite the parts that you need
+rewritten.  I have done a similar job with BLAZEIO, trying to correct
+a bug and provide file-locking.
+
+
+                 RENAMING RELOCATABLE FILE ITEMS
+
+Also provided is a program (RENREL) to RENAME the entrypoints of a .ERL 
+or .REL file.  You can also use this to remove the NAME FOR SEARCH items
+(unless your file is a library -- leave them in in that case!)
+
+The main advantage of this is that M80 output files are limited to six-
+character names, whereas MT+ may emit up to seven-character names.
+Using RENREL, you can change the six-character names to seven.
+
+                A RELOCATABLE FILE READING MODULE
+
+Also provided is MSMODULE (and MSTYPE) for sequentially reading Microsoft-
+format items from the bit-stream of a .ERL or .REL file and translating
+them to a format more easily used in Pascal.  (If I were more of a Pascal
+purits, I would have written the type "ms_item" found in MSTYPE in terms
+of variant records.  In fact, I did.  Keeping track of the variants was
+such a headache I went to the type declared here.)
+
+MSTYPE is separated out of MSMODULE since any program which uses the
+"get_ms" and "put_ms" procedures is also going to need the type declarations.
+Just $I MSTYPE.PAS somewhere in the types of your main program.
+
+DISASM was written before MSMODULE, and I never got around to rewriting it
+to use the module.
+
+
+               A TUTORIAL ON THE MICROSOFT FORMAT
+
+A relocatable format is one which contains assembled code and
+relocation information.  In contrast with the 8086, 8080 code is
+not naturally relocatable:  JMP's and CALL's are to ABSOLUTE
+addresses, and if the code location is shifted all of these addresses
+become invalid.  One way to overcome this is to assemble the code
+as if it started at $0000, then store (in addition to the code)
+one bit for each byte of code, indicating whether the item is
+relocatable or not.
+
+The Microsoft format goes several steps further:  it contains not 
+only relocation information, but also a good deal of symbolic 
+information (external references and names of entry-points).  The
+format is intended to be used with a linker.  
+
+The  Microsoft relocatable-file format consists of a bit  stream:  
+individual fields are not aligned on byte boundaries,  except  as 
+noted  below.   There  are  two types  of  items:   ABSOLUTE  and 
+RELOCATABLE.   The  first bit of an item distinguishes the  type:  
+if a 0,  the next 8 bits are loaded as ABSOLUTE; if a 1, the next 
+2 bits are used to determine the relocatable TYPE:
+
+     00 = special item (see below);
+
+     01 = Code relative.  Load the next 16 bits after adding
+          the current Program base.
+
+     10 = Data  relative.   Load  the next 16 bits  after  adding           
+          the current Data base.
+
+     11 = Common  relative.   Load the next 16 bits after  adding 
+          the current Common base.
+
+A special item has a bit stream looking like this:
+
+100       xxxx      yy bb     zzz + symbol name
+          ----      -----     -----------------
+         Control   A-field         B-field
+          Field
+
+where both the A-field and B-field are optional.
+
+The A-field  yy  bb  consists of a two-bit address yy similar  to 
+the relocatable type code above,  except that 00 denotes ABSOLUTE 
+address; followed by the 16-bit field bb described by yy.
+
+The  B-field  consists of a 3- bit field zzz  which defines 
+the length of a string, and as many bytes thereafter (up to 7) as
+are needed to define the symbol name.
+
+The following types specified by the control field have a B-FIELD ONLY:
+     xxxx                 Type
+     ----      ------------------------------
+     0000      Entry symbol (name for search)
+     0001      Select COMMON block
+     0010      Program name
+     0011      Request library search
+     0100      Reserved (future expansion)
+
+The following types have both an A-field and a B-field:
+
+     xxxx                 Type
+     ----      ------------------------------
+     0101      Define COMMON size
+     0110      Chain external (A is head of address chain,
+                 B is name of external symbol)
+     0111      Define entry point (A=address, B=name)
+
+The following types have an A-field only:
+
+     xxxx                 Type
+     ----      ------------------------------
+     1000      External  - offset.   Used  for JMP and  CALL  to 
+               externals.
+     1001      External  + offset.   A value will be added to the 
+               two bytes starting at the current location counter 
+               immediately before execution.
+     1010      Define size of Data area = A.
+     1011      Set loading location counter to A
+     1100      Chain  address.   A=head  of  chain,  replace  all 
+               entries  in chain with current  location  counter.  
+               Last  entry  in  chain  has an  address  field  of 
+               absolute 0.
+     1101      Define program size = A.
+     1110      End program -- forces to BYTE BOUNDARY.
+
+The following type has neither an A nor a B field:
+
+     xxxx                 Type
+     ----      ------------------------------
+     1111      End of file.
+
+
+
+     A  library  will contain one "End program" for  each  module 
+assembled into it; and only one End of file.
+
+                          FINAL REMARKS
+
+I have provided source code for DISASM although I intend to
+eventually modify and improve it, making it more interactive.
+Users are advised to get a copy of Ward Christiansen's public-
+domain RESOURCE (from CPMUG) if they want to disassemble .COM
+files.  (This is much more difficult, because you have NO symbol
+information available.)
+
+A companion module, MSMODULE, contains procedures to read/write
+Microsoft-format files.  This was (essentially) extracted from
+DISASM.
+
+The .ERL or .REL file is limited to 10K bytes.  Any more and an
+error message is displayed.
+
+When DISASM is tricked in the CSEG and must produce a DB, it issues
+a SYNCHRONIZATION ERROR line following the DB -- since this is a comment
+line, it will not interfere with the assembler.
+
+If the output file is not CON:, you will be shown a running summary
+of MEMAVAIL.
+
+DISASM is not entirely bug-free. In particular, sometimes it 
+hangs -- I have no idea why.  It checks MEMAVAIL before every use 
+of NEW, and it never seems to be anywhere near the stack.  Despite
+the new manual's promise about "@HERR", I can't get the compiler or
+linker to recognize it.  
+
+Also, since I make only one pass through the file, and don't back up 
+when a synchronization error is found (e.g., an opcode which requires 
+an absolute byte as the next byte, but has instead a relocatable word), 
+some address references are missed.  I arrange for these with ORG's 
+near the end of the CSEG.
+
+Finally, when the output file is not CON:, it finishes with a spurious
+display of memory remaining.  This is such a minor bug I haven't 
+bothered to try to squash it.
+
+
+                      COMPLAINT DEPARTMENT
+
+Please address all remarks, queries, complaints, suggestions for
+improvement, etc. to:
+
+                    Professor Ronald E. Bruck
+                    Department of Mathematics
+                    University of Southern California
+                    Los Angeles, CA 90089
+
