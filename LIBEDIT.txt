@@ -209,7 +209,7 @@ of the arrays for storing the file specification from 15 to 11
 characters. In the LIBEDT program, these are infile (11), otfile (11),
 nwfile (11)), in the FILER subroutine - fname (11) and in the FDUPCK
 subroutine fname1 (11), fname2 (11). The source file for the library
-manager for CP / M is named LIBEDCPM.RAT. In half of the FILER and
+manager for CP/M is named LIBEDCPM.RAT. In half of the FILER and
 FDUPCK programs, the descriptions of the COMMOM /flags/ statements
 are commented out, since the variables of them are not used in these
 subroutines. All print statements are replaced with write for use by
