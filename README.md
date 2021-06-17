@@ -84,10 +84,15 @@ compiled original Pascal version.
 The following files are provided:
 
 RELTOASM.C      - Hi-Tech C source code program 
+
 DISA-REL.PAS    - Pascal MT+ source code DISA-REL
+
 DISASM.DOC      - DISA-REL description
+
 LIBEDIT.RAT     - the source code of the LIBE program in the RATFOR language 
+
 LIBEDIT.txt     - description of the LIBE program in English
+
 LIBEDIT_rus.txt - description of the LIBE program in Russian 
 
 
