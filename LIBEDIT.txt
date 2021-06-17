@@ -1,0 +1,202 @@
+Library Manager
+
+THE PACKAGE
+
+LIBEDIT is a library manager.  A library is defined as a /REL
+file containing one or more modules or subprograms.  It is
+capable of reading /REL files and performing any of five
+functions:  scan a library and print all the module names and
+entry points, copy a subprogram to a new /REL file, delete a
+subprogram from the library, replace a subprogram, or insert a
+new subprogram.  You should always operate on a backup copy of
+any library of value, particularly FORLIB/REL.  Even though
+LIBEDIT will never intentionally write over the input file, it
+is always prudent to keep the filenames of only copies of
+important files out of any software as powerful as LIBEDIT. 
+
+Your library manager package is available to you as RATFOR
+source code.  It consists of a main program LIBEDT and modules
+LOGIC, RDPROG, ICFACT, HEXER, FILER, FDUPCK, IBFTCH, BFETCH,
+and WRIREL.  A module TEST is included to exercise the library
+manager on its own /REL file.  You can compile your library
+manager to a /CMD file by the command
+
+do qrat (p=libedit)
+
+Any time the LIBEDIT/CMD file is on a disk in your computer,
+you can invoke it by the command "libedit" at the LDOS prompt. 
+The program is totally driven by simple menus and no
+instructions are necessary.  Just go ahead and use it.  The
+first thing you need to do is find out which /REL files are
+available to look at on your computer with a "dir $/rel"
+command.  Then, pick one and invoke LIBEDIT and scan it.  One
+thing to keep in mind is that LIBEDIT will go to the printer if
+it is on and ready; for screen output, take your printer off
+line.
+
+You can use your library manager to disassemble /REL files.  To
+do this, write the module you want to disassemble to a new /REL
+file.  Then, use the "Scan library" option to obtain all
+available information about the entry points and external
+references of the file; this information should be printed out
+for detailed reference later.  Next, use L80 to load to a /CMD
+file WITH FORLIB/REL NOT AVAILABLE.  This is important because
+FORLIB/REL will be automatically scanned if it is available and
+will likely make your /CMD file much larger than it needs to
+be.  You can temporarily rename FORLIB/REL if that is the most
+convenient way to keep it from being linked with the module to
+be disassembled.  Then, simply disassemble the /CMD file to the
+printer or a disk file and cross over the information on entry
+points and external references you printed out using the
+library manager.
+
+THE ROLE OF RATFOR
+
+RATFOR works with the Tandy/Microsoft FORTRAN 66 compiler F80,
+a linking loader L80, and, optionally, the macro assembler M80. 
+Therefore, you can use this library manger for libraries
+consisting of RATFOR, FORTRAN, or assembly language programs or
+any combination.
+
+THE MODULES
+
+The modules of LIBEDIT/RAT are described briefly below.
+
+LIBEDT
+
+The main program LIBEDT reads in the file name for the library
+to be examined or operated on.  The extension /REL is added,
+the file is opened, and the menu is printed.  Given the menu
+selection, additional data such as module numbers and file
+names are prompted for and read from the keyboard as required
+to execute the command according to the menu selection.  Other
+files are opened as required.  Finally, there is a loop on the
+modules of the input file.
+
+LOGIC
+
+The module LOGIC uses the menu selection to set a variety of
+flags in the program COMMON block which determine the actions
+of the various other modules.  All program logic not performed
+in the main program loop on module number is determined by
+these flags.
+
+RDPROG
+
+The module RDPROG reads a module from an input file.  The input
+file can be the library being examined or a new module to
+replace or insert into an edited library.  Each file is a bit
+stream beginning on a byte boundary.  The bit stream consists
+of a set of four-bit data type flags.  Name flags such as
+symbol declarations are followed by ASCII fields; other flags
+are followed by binary data.  ASCII data is read in where
+appropriate and binary data is read in and converted to
+hexadecimal ASCII for output.  Module ICFACT is called to act
+on each data type flag.
+
+ICFACT
+
+This module is called by RDPROG to perform output functions. 
+Sometimes output is not appropriate, such as when a library is
+being scanned to find the proper point to insert, replace, or
+delete a module.  In these cases, ICFACT simply returns to
+RDPROG with no action.
+
+All 16 data type flags can be acted upon properly by ICFACT. 
+The are:
+
+     0     ENTRY symbol declaration
+     1     COMMON name declaration
+     2     Subprogram name
+     3     EXTERNAL symbol declaration
+     4     Reserved (undefined) type symbol declaration
+     5     COMMON length declaration]
+     6     EXTERNAL name reference and local address
+     7     ENTRY point name declaration and local address
+     8     Undefined name and local address
+     9     EXTERNAL reference with offset
+    10     DATA size declaration
+    11     Set relative address counter
+    12     Chain address for multiply referenced symbol
+    13     Set absolute program size
+    14     End of subprogram
+    15     End of file
+
+There is a template in ICFACT.  The array ACTFLG has sixteen
+elements, each corresponding to a data type flag.  If an
+element of ACTFLG is set to zero, ICFACT simply returns with
+not action taken.  As supplied, values for data type flags 0,
+1, 11 and 12 are set to zero.  You can change these flags to
+suit your taste; the four masked out in the distribution copy
+were set according to the following logic:  Entry points and
+COMMON names can be easily found in a disassembly by context. 
+Resetting the relative address counter is a loader bookkeeping
+function conveying little information.  You can track chain
+addresses from the disassembled file because they are relative
+hexadecimal addresses which form a trail which begins at an
+external reference and ends with a zero address.
+
+HEXER
+
+This module is used to produce ASCII hexadecimal from 16 bit
+binary integers for output.  You are free to use this module or
+a variation of it whenever you need to write data in
+hexadecimal.
+
+FILER
+
+This module operates on an ASCII file name as read from the
+keyboard.  It forces the name to upper case if it is in lower
+case and adds the extension "/REL".  If a drive was specified,
+the ":<n>" is saved and added after the extension so that the
+drive specification is preserved.
+
+FDUPCK
+
+This module compares two file names.  If they are not exactly
+the same, including drive specification, no action is taken. 
+If they are the same, the message "**Duplicate file name" is
+printed to the screen and the program is terminated through a
+STOP statement.
+
+This program is designed to prevent the user from accidentally
+writing over the input library.  However, it can be fooled by
+using "inlib" and "inlib:0", for example.  Therefore, you
+should NEVER operate on your only copy of an important library. 
+This is especially important if you do not have the source code
+to rebuild the library.  FORLIB/REL is the most important
+example of a library which should NEVER be operated on by
+LIBEDIT unless several other backup copies are available.
+
+IBFTCH
+
+Module IBFTCH is a utility which fetches from one to eight bits
+from the input bit stream.  It is implemented as a FUNCTION and
+the number of bits to be fetched is passed as the only
+argument.  If the number of bits to be fetched is given as
+zero, the fetch is forced to a byte boundary.
+
+BFETCH
+
+This module is called by IBFTCH.  Its purpose is to read in 8-
+bit bytes sequentially from one of two input files.  Binary I/O
+is used for speed and two binary 256-byte buffers are used.  In
+addition, a flag is check for output; if set, data from the
+input file is written to the output file as it is read in on a
+byte by byte basis.
+
+WRIREL
+
+This module is called by BFETCH to write edited library files
+and output modules extracted from libraries.  Binary output is
+used for speed.  A single 256 byte buffer is used.  It is
+called by the main program LIBEDT before exit to write the end
+of file byte and empty the output buffer.
+
+TEST
+
+This module is included for the sole purpose of providing a
+module for extraction using the LIBEDIT/REL as an input
+library.  It is a simple subroutine with no arguments which
+prints out the value of pi as computed by 4*ATAN(1.).
+
