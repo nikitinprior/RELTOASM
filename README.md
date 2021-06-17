@@ -14,22 +14,38 @@ source code.
 A part of the programs for CP/M is presented in the order of their writing.
 
 RELDUMP.ASM  8/22/80  Ron Fowler Westland, Mich. RMAC, Size .COM = 1K
+
 RELDUMP.ASM  1981     MML Systems Limited, RMAC, Size .COM = 2K
+
 RELMAP.ASM   1981     MML Systems Limited, RMAC
+
 RELDEL.ASM   1981     MML Systems Limited, RMAC
+
 READREL.C    08/20/83 v1.1 G. A. Edgar, Aztec CII, Size .COM = 11K
+
 DISREL.ASM   10/8/84  Pierre R. Schwob on asm 8080 Size .COM = 14K
+
 LINKMAP.ASM  1984     v1.0 NightOwl Software, Inc., RMAC, Size .COM = 2K
+
 DREL.C       1985     J. E. Hendrix, Small C, Size .COM = 11K
+
 UNREL.C      1986     Riclin Computer Products, MISOSYS C, Size .COM = 19K
+
 DECODREL.C   1986     Riclin Computer Products, MISOSYS C
+
 SPLITLIB.C   1986     Riclin Computer Products, MISOSYS C, Size .COM = 10K
+
 LIBE.RAT     1990     Unknown, RATFOR, Size .COM = 13K
+
 TB.C         1991     v2.2 MicroGenSf (Russia), MicroGenSf C, Size .COM = 11K
+
 DISA-REL.PAS 1994     Ronald E. Bruck, Pascal MT+, Size .COM = 19K
+
 REL.MAC      1997     Werner Cirsovius, M80
+
 RELUTIL.MAC  2015     Werner Cirsovius M80, Size .COM = 3K
-RELtoASM.C   2021     v1.0 A. Nikitin, Hi-Tech C, Size .COM = 19K
+
+RELTOASM.C   2021     v1.0 A. Nikitin, Hi-Tech C, Size .COM = 19K
 
 Many of these programs display the information contained in the object file in one
 form or another. Two of them are trying to translate it into assembly language code.
