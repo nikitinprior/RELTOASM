@@ -1,0 +1,442 @@
+define	PRINTLUN	3
+define	READLUN		1
+program libedt #Program to edit $/REL files
+byte name(8),aadr(4),infile(15),otfile(15),nwfile(15),ieofb
+common /flags/ iopt,inum,icnt,iout,iprnt,ilunin,lunrel(2),lunout,lunp
+common /reldat/ name,iy2,aadr
+data icnt/1/,lunrel/6,7/,lunout/8/,ieofb/158/
+#***Begin
+#Read in $/REL file name and open file
+print 3000 #Prompt for and input library file name
+3000 format(' Library file name (omit extension)? ')
+call filer(infile)
+call open(lunrel(1),infile,256)
+print 3010 #Print menu and input option
+3010 format(' MENU'/_
+  ' (Note:  if printer is ready after selections, it will be used for output'/_
+  ' Input option:'/_
+  '  0 => Scan library'/_
+  '  1 => Write subprogram to output file'/_
+  '  2 => Delete subprogram'/_
+  '  3 => Replace subprogram n with new subprogram'/_
+  '  4 => Insert new subprogram'/_
+  '       Your selection? ')
+read 3020,iopt
+3020 format(I10)
+switch iopt
+  {
+  case 1,2,3: print 3030; 3030 format(' Which subprogram? ')
+  case 4: print 3040; 3040 format(' Preceeding which subprogram? ')
+  }
+if(iopt>0) read 3020,inum
+if(iopt>2)
+  {
+  print 3050 #Prompt for and read in new subprogram file name
+3050 format(' New subprogram for insertion or substitution (omit extension)? ')
+  call filer(nwfile)
+  call fdupck(infile,nwfile) #Check for duplicate file name
+  call open(lunrel(2),nwfile,256)
+  }
+if(iopt!=0)
+  {
+  print 3060 #Prompt for and read in output REL file name
+    3060 format(' Output file name (omit extension) ? ')
+  call filer(otfile)
+  call fdupck(infile,otfile) #Check for duplicate file names
+  if(iopt>2) call fdupck(nwfile,otfile)
+  call open(lunout,otfile,256)
+  }
+if((inp(248) & 240)==48) #Set LUNP according to printer status
+  lunp=2
+else
+  lunp=3
+##
+icnt=0
+ilunin=1
+repeat
+  {
+  call logic #Set LUNs and flags
+  idum=ibftch(0) #Force to byte boundary
+  call rdprog(icf) #Read and write subprogram
+  if(iprnt!=0 & icf!=15) #Scan, not edit?
+    if(lunp==2)
+      print 3080,icnt
+    else
+      pause ok? #Pause screen print
+  } until(icf==15) #Normal exit on EOF
+iout=1 #Set flag for append and EOF output
+if(icnt<inum & iopt==4) #Watch for append to end of library
+  {
+  ilunin=2
+  write(lunp,3070)
+  call rdprog(icf)
+  }
+if(iopt!=0)
+  call wrirel(2,ieofb) #Output last record, put EOF on output file
+3070 format(' Appending subprogram')
+3080 format(' End of subprogram',I4/)
+end
+#----------------------------------------------------------------
+subroutine logic #Set LUNs and flags
+common /flags/ iopt,inum,icnt,iout,iprnt,ilunin,lunrel(2),lunout,lunp
+#Flags used for input:
+#	iopt		0,1,2,3, or 4 (see comments below)
+#	inum		User-input sequence number
+#	icnt		Sequence number for subprograms in library, initialized as 0
+#	ilunin		Initialized as 1
+#Flags set by "logic":
+#	icnt		Incremented
+#	ilunin		1,2=> library or new subprogram used as input
+#	iout		0=>no output written, 1=>write output $/REL file from input
+#	iprnt		0,1,2=>minimal, regular, or max information printed
+#
+switch iopt
+  {
+  case 0: #Just scan input file, no output
+    {
+    icnt=icnt+1
+    iout=0
+    iprnt=1
+    }
+  case 1: #Write subprogram inum to output file
+    {
+    icnt=icnt+1
+    if(icnt==inum)
+      {
+      iout=1
+      iprnt=2
+      }
+    else
+      {
+      iout=0
+      iprnt=0
+      }
+    }
+  case 2: #Delete subprogram inum
+    {
+    icnt=icnt+1
+    if(icnt!=inum)
+      iout=1
+    else
+      {
+      iout=0
+      print 3010
+      if(lunp==2) write(lunp,3010)
+      }
+    iprnt=0
+    }
+  case 3,4: #Replace or insert before subprogram inum
+    {
+    icnt=icnt+1
+    if(icnt==inum) #Program to be substituted
+      {
+      if(ilunin==1)
+        {
+        icnt=icnt-1 #Dont't increment icnt
+        ilunin=2
+        iout=1
+        print 3000
+        if(lunp==2) write(lunp,3000)
+        iprnt=1
+        }
+      else
+        {
+        ilunin=1
+        if(iopt==3) #iopt=3, sutstitute subprogram for no. inum
+          {
+          iout=0 #Skip old subprogram
+          print 3010
+          if(lunp==2) write(lunp,3010)
+          }
+        else #iopt=4, insert subprogram before no. inum
+          iout=1 #Write subprogram inum
+        iprnt=0
+        }
+      }
+    else #All other subprograms
+      {
+      iout=1
+      iprnt=0
+      }
+    }
+  }
+return
+3000 format(' New subprogram')
+3010 format(' Omitted subprogram')
+end
+#----------------------------------------------------------------
+subroutine rdprog(icf) #Read subprogram from library or new file
+byte name(8),aadr(4)
+common /flags/ iopt,inum,icnt,iout,iprnt,ilunin,lunrel(2),lunout,lunp
+common /reldat/ name,iy2,aadr
+repeat #Scan library file
+  {
+  n1=ibftch(1) #***Fetch relocation flag bit
+  if(n1==0) #Zero initial bit--absolute load of 8 bits
+    {
+    i8=ibftch(8)
+    next
+    }
+  n2=ibftch(2)+1 #***Fetch relocation type index
+  if(n2!=1)
+    {
+    i16=ibftch(8)         #Relative load of 16-bit quantity
+    i16=i16+ibftch(8)*256 #Fetch 16 bit quantity in LSB, MSB format
+    next
+    }
+  icf=ibftch(4) #***Fetch 4-bit control field
+#***ICF=0-4 => B field only
+#***ICF=5-8 => A and B field
+#***ICF=9-14 => A field only
+#***ICF=15 => no A or B field
+  if(icf>4 & icf<15) #A field if 4<icf<15
+    {
+#***Fetch A field (0-3 "type", 16 bit address)
+    iy2=ibftch(2)+1
+#Fetch 16 bit quantity in LSB, MSB format
+    iaa=ibftch(8)
+    iaa=iaa+ibftch(8)*256
+#Use HEX representation of A field address
+    call hexer(iaa,aadr)
+    }
+  if(icf<9) #B field if icf<9
+    {
+#***Fetch B field (1-7 character count, followed by characters)
+    iz3=ibftch(3)
+    do i=1,8 #Use blank fill to eight characters
+      {
+      if(i<=iz3)
+        name(i)=ibftch(8)
+      else
+        name(i)=' '
+      }
+    }
+  call icfact(icf) #***Act on control field=ICF
+  } until (icf>13) #Normal exit on end of file or EOF
+return
+end
+#----------------------------------------------------------------
+subroutine icfact(icf) #Subroutine to perform actions according to icf
+byte name(8),aadr(4),actflg(16)
+real type(4) #4 ASCII characters per array element
+common /flags/ iopt,inum,icnt,iout,iprnt,ilunin,lunrel(2),lunout,lunp
+common /reldat/ name,iy2,aadr
+data type/'ABS ','Prel','Drel','Crel'/
+#data actflg/1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1/
+data actflg/0,0,1,1,1,1,1,1,1,1,1,0,0,1,1,1/
+switch iprnt #Print flag logic
+  {
+  case 0: if(icf<14 & icf!=2) return
+  case 1: if(actflg(icf+1)==0) return #No action on some values
+  }
+switch icf
+  {
+  case 0: #ENTRY symbol decaration
+    write(lunp,3010) name
+  case 1: #COMMON name declaration
+   write(lunp,3020) name
+  case 2: #Subprogram name
+    write(lunp,3030) name
+  case 3: #EXT declaration
+    write(lunp,3040) name
+  case 4: #RESERVED (undefined) type
+    write(lunp,3050) name
+  case 5: #COMMON length declaration
+    write(lunp,3060) name,type(iy2),aadr
+  case 6: #EXT reference from program
+    write(lunp,3070) name,type(iy2),aadr
+  case 7: #ENTRY point inside program
+    write(lunp,3080) name,type(iy2),aadr
+  case 8: #UNDEFINED type
+    write(lunp,3090) name,type(iy2),aadr
+  case 9: #EXT reference with offset
+    write(lunp,3100) type(iy2),aadr
+  case 10: #DATA size declaration
+    write(lunp,3110) type(iy2),aadr
+  case 11: #Set absolute address for PREL counter (used VERY often)
+    write(lunp,3120) type(iy2),aadr
+  case 12: #Chain address (multiply referenced symbol)
+    write(lunp,3130) type(iy2),aadr
+  case 13: #Set absolute program size
+    write(lunp,3140) type(iy2),aadr
+  case 14: #End of subprogram
+    write(lunp,3150) icnt
+  case 15: #End of file (No A or B field)
+    write(lunp,3180)
+  }
+return
+##
+3010 format(' ENTRY declared   ',8A1)
+3020 format(' COMMON name      ',8A1)
+3030 format(' Subprogram name  ',8A1)
+3040 format(' EXT declaration  ',8A1)
+3050 format(' RESERVED:        ',8A1)
+3060 format(' COMMON length of ',8A1,' type ',A4,' length  ',4A1,'H')
+3070 format(' EXT reference to ',8A1,' type ',A4,' address ',4A1,'H')
+3080 format(' ENTRY point      ',8A1,' type ',A4,' address ',4A1,'H')
+3090 format(' Unknown label    ',8A1,' type ',A4,' address ',4A1,'H')
+3100 format(' EXT offset       ', 8X,' type ',A4,' offset  ',4A1,'H')
+3110 format(' DATA size        ', 8X,' type ',A4,'  length ',4A1,'H')
+3120 format(' PREL address set ', 8X,' type ',A4,'    to   ',4A1,'H')
+3130 format(' Chain address    ', 8X,' type ',A4,'         ',4A1,'H')
+3140 format(' Subprogram size  ', 8X,' type ',A4,'  length ',4A1,'H')
+3150 format(' End of subprogram',I4/)
+3180 format(' END OF FILE')
+end
+#----------------------------------------------------------------
+subroutine hexer(i2,addr) #Converts 16-bit binary I2 to four-digit HEX ADDR
+integer ix(4)
+byte i2(2),j2(2),addr(4),look(16)
+equivalence (j2(1),j1)
+data look/'0','1','2','3','4','5','6','7',
+  '8','9','A','B','C','D','E','F'/,J1/0/
+j2(1)=i2(1)   #Store 8 LSB of input locally
+ix(1)=j1 & 15 #1st HEX digit
+ix(2)=j1/16   #2nd HEX digit
+j2(1)=i2(2)   #Store 8 MSB of input
+ix(3)=j1 & 15 #3rd HEX digit
+ix(4)=j1/16   #4th HEX digit
+do i=1,4
+  {
+  j=ix(i) #HEX digits 0-F
+  k=5-i   #stored MSB first
+  addr(k)=look(j+1)
+  }
+return
+end
+#----------------------------------------------------------------
+subroutine filer(fname) #Subroutine to read in file name and force /REL ext
+byte fname(15),bb,fno
+common /flags/ iopt,inum,icnt,iout,iprnt,ilunin,lunrel(2),lunout,lunp
+read 1000,fname; 1000 format(15a1) #Read in file name
+#Search for end of name
+i0=0
+id=0
+do i=1,14
+  {
+  bb=fname(i)
+  if(bb>=97 & bb<=122) bb=bb-32 #Force to UC
+#End of name is ' ', '/', or ':'
+  if(i0==0 & bb==32 | bb==47 | bb==58) i0=i
+  if(bb==58) id=i+1 #If drive specified, find drive number
+  fname(i)=bb
+  }
+fname(i0)='/' #Force extension of "/REL"
+fname(I0+1)='R'
+fname(I0+2)='E'
+fname(I0+3)='L'
+fname(I0+4)=' '
+if(id!=0) #Add drive number, if any
+  {
+  fno=fname(id)
+  fname(I0+4)=':'
+  fname(I0+5)=fno
+  fname(I0+6)=' '
+  }
+return
+end
+#----------------------------------------------------------------
+subroutine fdupck(fname1,fname2) #Subroutine to check for duplicate file names
+byte fname1(15),fname2(15)
+common /flags/ iopt,inum,icnt,iout,iprnt,ilunin,lunrel(2),lunout,lunp
+do i=1,15
+  if(fname1(i)!=fname2(i)) return
+print 3000,fname2
+stop
+ 3000 format(' **Duplicate file name '15a1)
+end
+#----------------------------------------------------------------
+function ibftch(nbits) #Function to fetch NBITS from $/REL file bit stream
+#Bits are counted from TOP of word (MSB is bit 8, first out)
+#IBP is pointer to next bit available (bits numbered 1-8)
+#NBP is next bit pointer after current read is finished
+#NBP=IBP-NBITS+K*8, where K=0, 1 or 2
+#NC is current byte in file
+#Zero NBITS is flag to begin at byte boundary on NEXT call
+integer mh(8),tn(8),ts(8)
+data ibp/0/,nc/0/
+data mh/1,3,7,15,31,63,127,255/
+data tn/1,2,4,8,16,32,64,128/
+data ts/256,128,64,32,16,8,4,2/
+#***Check NBITS for "force to byte boundary" special call
+if(nbits==0)
+  {
+  ibp=0
+  return
+  }
+#***BEGIN
+#Make sure pointer is in current byte
+if(ibp==0)
+  {
+  call bfetch(nc)
+  ibp=8
+  }
+#***Pick up bits NBP+1 to IBP out of current byte, if possible
+nbp=ibp-nbits
+if(nbp>=0)
+  {
+  ibftch=(nc & mh(ibp))/tn(nbp+1)
+  ibp=nbp
+  }
+else #***Pick up additional bits NBP+1 to 8 out of next byte
+  {
+  ibftch=nc & mh(ibp)
+  call bfetch(nc)
+  nbp=nbp+8
+#***Add in bits NBP+1 to 8
+  ibftch=(ibftch*ts(nbp+1)) | (nc/tn(nbp+1))
+  ibp=nbp
+  }
+return
+end
+#----------------------------------------------------------------
+subroutine bfetch(intb) #Subroutine to fetch bytes sequentially from file
+byte buffer(256,2),inpb
+integer ipoint(2),ieof(2)
+common /flags/ iopt,inum,icnt,iout,iprnt,ilunin,lunrel(2),lunout,lunp
+data ipoint/257,257/,ieof/0,0/
+if(ipoint(ilunin)>256) #Read in new data block if necessary
+  {
+  if(ieof(ilunin)==1) #EOF on previous block read in?
+    {
+    print 3010
+    stop
+    }
+  lun=lunrel(ilunin)
+  read(lun,end=50) (buffer(i,ilunin),i=1,256)
+  60 ipoint(ilunin)=1 #Set pointer to first byte in block
+  }
+ip=ipoint(ilunin) #Pick byte sequentially from buffer and increment pointer
+inpb=buffer(ip,ilunin)
+if(iout!=0) call wrirel(1,inpb) #Write byte to output if flag set
+intb=inpb
+intb=intb & 255 #AND off sign extension
+ipoint(ilunin)=ip+1
+return
+50 ieof(ilunin)=1; go to 60 #Normal EOF on last block--set flag
+3010 format(' **Attempt to read past EOF in BFETCH**')
+end
+#----------------------------------------------------------------
+subroutine wrirel(ieof,outb) #Subroutine to write output file
+#iopt is option: 1=>write buffer, 2=>write EOF and empty buffer
+byte buffer(256),outb
+common /flags/ iopt,inum,icnt,iout,iprnt,ilunin,lunrel(2),lunout,lunp
+data ip/0/ #Buffer pointer
+if(ip==0) {do i=1,256; buffer(i)=0} #Zero buffer if flag set
+ip=ip+1 #Increment pointer and store output byte
+buffer(ip)=outb
+if(ip>255 | ieof==2) #Write buffer and reset pointer if full (or flag set)
+  {
+  write(lunout) buffer #Binary write
+  ip=0 #Reset pointer
+  }
+return
+end
+#----------------------------------------------------------------
+subroutine test #Subroutine to test REL file extraction
+common /flags/ iopt,inum,icnt,iout,iprnt,ilunin,lunrel(2),lunout,lunp
+pi=4*atan(1.)
+print 1000,pi
+ 1000 format(' pi=',f10.6)
+return
+end
