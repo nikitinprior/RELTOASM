@@ -14,21 +14,12 @@ source code.
 In a tabular form, a part of the programs for CP/M is presented in the order of
 their writing.
 
-+--------------+---------+----------------------------+-------------+------+----------------------------+
+  Program        Date      Author                       Language      Size   Description
+  name           writing                                sourse        .COM                               
 
-| Program      | Date    | Author                     | Language    | Size | Description                |
-
-| name         | writing |                            | sourse      | .COM |                            |
-
-+--------------+---------+----------------------------+-------------+------+----------------------------+
-
-| RELDUMP      | 8/22/80 | Ron Fowler Westland, Mich. | asm 8080    |  1 K | Display contents .REL file |
-
-+--------------+---------+----------------------------+-------------+------+----------------------------+
-
-| RELDUMP      | 1981    | MML Systems Limited        | asm 8080    |  2 K | Display contents .REL file |
-
-| RELMAP       | 1981    |                            | asm 8080    |      | Display names in .REL file |
+  RELDUMP        8/22/80   Ron Fowler Westland, Mich.   asm 8080       1 K   Display contents .REL file
+  RELDUMP        1981      MML Systems Limited          asm 8080       2 K   Display contents .REL file
+  RELMAP         1981                                   asm 8080             Display names in .REL file
 
 | RELDEL       | 1981    |                            | asm 8080    |      | Remove any entry names     |
 
