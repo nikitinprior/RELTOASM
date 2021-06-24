@@ -97,4 +97,29 @@ LIBEDIT_rus.txt - description of the LIBE program in Russian
 
 
 
+Added CP/M version of SPLITLIB program. June 24, 2021
+
+SPLITLIB is invoked with the syntax:
+
+SPLITLIB infile[.REL] maxlength [drivespec]
+
+infile     - Is the filename of the REL library. If
+             the extension is omitted, 'REL' will
+             be assumed.
+
+maxlength  - Is the maximum length of an output
+             file (in bytes). The module currently
+             being output will be continued to it's
+             "module end" which will be followed by
+             an "end file" byte (X'9E'). Maxlength
+             must be in the range <100-32767).
+
+drivespec  - This designates the drive to which the
+             file partitions will be written. If
+             omitted, the drive specified with
+             "infile" will be used. Each output
+             partition will be named, "infile.Rxx";
+             "xx" being 01, 02, ... for the first,
+             second, etc., partitions.
+
 Andrey Nikitin
